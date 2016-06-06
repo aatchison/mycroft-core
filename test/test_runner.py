@@ -4,7 +4,7 @@ import unittest
 import os
 from xmlrunner import XMLTestRunner
 
-from mycroft.configuration.config import ConfigurationManager
+from mycroft.configuration import ConfigurationManager
 
 __author__ = 'seanfitz'
 
