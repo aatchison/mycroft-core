@@ -13,7 +13,7 @@ OUTPUT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 loader = unittest.TestLoader()
 fail_on_error = "--fail-on-error" in sys.argv
-ConfigurationManager.load_local(os.path.join(TEST_DIR, 'config.ini'))
+ConfigurationManager.load_local(os.path.join(TEST_DIR, 'mycroft.ini'))
 tests = loader.discover(TEST_DIR, pattern="*_test*.py")
 runner = XMLTestRunner(output="./build/report/tests")
 result = runner.run(tests)
