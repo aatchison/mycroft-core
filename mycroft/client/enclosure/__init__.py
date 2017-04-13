@@ -19,9 +19,8 @@
 import subprocess
 import time
 from Queue import Queue
-from alsaaudio import Mixer
 from threading import Thread, Timer
-
+from alsaaudio import Mixer
 import serial
 
 from mycroft.client.enclosure.arduino import EnclosureArduino
@@ -56,6 +55,11 @@ class EnclosureReader(Thread):
     """
 
     def __init__(self, serial, ws):
+        """EnclosureReader init
+            Args:
+                ws: websocket client
+                serial: serial client
+        """
         super(EnclosureReader, self).__init__(target=self.read)
         self.alive = True
         self.daemon = True
@@ -64,6 +68,8 @@ class EnclosureReader(Thread):
         self.start()
 
     def read(self):
+        """Enclosure reader serial port read
+        """
         while self.alive:
             try:
                 data = self.serial.readline()[:-2]
@@ -74,13 +80,21 @@ class EnclosureReader(Thread):
                 LOG.error("Reading error: {0}".format(e))
 
     def process(self, data):
+        """Enclosure reader process events
+            Args:
+                data : some data to process ?
+            Notes:
+                The mycroft stop button press must use WS instead
+                time.sleep in "mic.test" prevents recording the button press itself"
+                subprocess.call in "mic.test" plays white noise for arduino mute test
+        """
         self.ws.emit(Message(data))
 
         if "Command: system.version" in data:
             self.ws.emit(Message("enclosure.start"))
 
         if "mycroft.stop" in data:
-            create_signal('buttonPress')  # FIXME - Must use WS instead
+            create_signal('buttonPress')
             self.ws.emit(Message("mycroft.stop"))
 
         if "volume.up" in data:
@@ -105,13 +119,10 @@ class EnclosureReader(Thread):
             mixer.setvolume(35)
             self.ws.emit(Message("speak", {
                 'utterance': "I am testing one two three"}))
-
-            time.sleep(0.5)  # Prevents recording the loud button press
+            time.sleep(0.5)
             record("/tmp/test.wav", 3.0)
             mixer.setvolume(prev_vol)
             play_wav("/tmp/test.wav").communicate()
-
-            # Test audio muting on arduino
             subprocess.call('speaker-test -P 10 -l 0 -s 1', shell=True)
 
         if "unit.shutdown" in data:
@@ -160,6 +171,12 @@ class EnclosureWriter(Thread):
     """
 
     def __init__(self, serial, ws, size=16):
+        """Enclosure writer init
+            Args:
+                serial: serial client
+                ws: websocket client
+                size: write character size?
+        """
         super(EnclosureWriter, self).__init__(target=self.flush)
         self.alive = True
         self.daemon = True
@@ -169,6 +186,8 @@ class EnclosureWriter(Thread):
         self.start()
 
     def flush(self):
+        """Enclosure writer flush the serial port buffer
+        """
         while self.alive:
             try:
                 cmd = self.commands.get()
@@ -179,9 +198,15 @@ class EnclosureWriter(Thread):
                 LOG.error("Writing error: {0}".format(e))
 
     def write(self, command):
+        """Enclosure writer write
+           write a contructed command to the serial port
+        """
         self.commands.put(str(command))
 
     def stop(self):
+        """Enclosure writer stop
+           stops the serial writer process
+        """
         self.alive = False
 
 
@@ -200,6 +225,8 @@ class Enclosure(object):
     """
 
     def __init__(self):
+        """Enclosure service init
+        """
         self.ws = WebsocketClient()
         ConfigurationManager.init(self.ws)
         self.config = ConfigurationManager.get().get("enclosure")
@@ -213,6 +240,11 @@ class Enclosure(object):
         # needs an explanation, this is non-obvious behavior
 
     def start(self, event=None):
+        """Enclosure start
+           initialize all Arduino api methods
+            Args:
+             event: empty event
+        """
         self.eyes = EnclosureEyes(self.ws, self.writer)
         self.mouth = EnclosureMouth(self.ws, self.writer)
         self.system = EnclosureArduino(self.ws, self.writer)
@@ -222,6 +254,8 @@ class Enclosure(object):
         self.started = True
 
     def __init_serial(self):
+        """Enclosure init serial port client
+        """
         try:
             self.port = self.config.get("port")
             self.rate = self.config.get("rate")
@@ -235,6 +269,8 @@ class Enclosure(object):
             raise
 
     def __register_events(self):
+        """Register Arduino api events
+        """
         self.ws.on('enclosure.mouth.events.activate',
                    self.__register_mouth_events)
         self.ws.on('enclosure.mouth.events.deactivate',
@@ -244,12 +280,20 @@ class Enclosure(object):
         self.__register_mouth_events()
 
     def __register_mouth_events(self, event=None):
+        """Register Ardunio mouth events
+            Args:
+                event: empty event
+        """
         self.ws.on('recognizer_loop:record_begin', self.mouth.listen)
         self.ws.on('recognizer_loop:record_end', self.mouth.reset)
         self.ws.on('recognizer_loop:audio_output_start', self.mouth.talk)
         self.ws.on('recognizer_loop:audio_output_end', self.mouth.reset)
 
     def __remove_mouth_events(self, event=None):
+        """Unregister Ardino mouth events
+            Args:
+             event: empty event
+        """
         self.ws.remove('recognizer_loop:record_begin', self.mouth.listen)
         self.ws.remove('recognizer_loop:record_end', self.mouth.reset)
         self.ws.remove('recognizer_loop:audio_output_start',
@@ -258,15 +302,23 @@ class Enclosure(object):
                        self.mouth.reset)
 
     def __reset(self, event=None):
-        # Reset both the mouth and the eye elements to indicate the unit is
-        # ready for input.
+        """Reset both the mouth and the eye elements to indicate the unit is ready for input.
+            Args:
+             event: empty event
+        """
         self.writer.write("eyes.reset")
         self.writer.write("mouth.reset")
 
     def speak(self, text):
+        """Speak event -- displays text on screen
+           Args:
+               text (str): a string of text to be displayed
+        """
         self.ws.emit(Message("speak", {'utterance': text}))
 
     def run(self):
+        """Create websocket connection and run forever
+        """
         try:
             self.ws.run_forever()
         except Exception as e:
@@ -274,6 +326,8 @@ class Enclosure(object):
             self.stop()
 
     def stop(self):
+        """Enclosure service stop
+        """
         if not self.started:
             self.writer.stop()
             self.reader.stop()

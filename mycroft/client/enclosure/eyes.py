@@ -31,11 +31,18 @@ class EnclosureEyes:
     """
 
     def __init__(self, ws, writer):
+        """Enclosure eyes init
+            Args:
+             ws (obj): websocket communication method
+             writer (obj): serial communication method
+        """
         self.ws = ws
         self.writer = writer
         self.__init_events()
 
     def __init_events(self):
+        """Enclosure eyes event initialization
+        """
         self.ws.on('enclosure.eyes.on', self.on)
         self.ws.on('enclosure.eyes.off', self.off)
         self.ws.on('enclosure.eyes.blink', self.blink)
@@ -49,26 +56,51 @@ class EnclosureEyes:
         self.ws.on('enclosure.eyes.reset', self.reset)
 
     def on(self, event=None):
+        """Enclosure eyes on event
+            Args:
+                event: empty event
+        """
         self.writer.write("eyes.on")
 
     def off(self, event=None):
+        """Enclosure eyes off event
+            Args:
+                event: empty event
+        """
         self.writer.write("eyes.off")
 
     def blink(self, event=None):
+        """Enclosure eyes blink event
+            Args:
+                event: empty event unless includes "side" data
+        """
         side = "b"
         if event and event.data:
             side = event.data.get("side", side)
         self.writer.write("eyes.blink=" + side)
 
     def narrow(self, event=None):
+        """Enclosure eyes narrow event
+            Args:
+                event: empty event
+        """
         self.writer.write("eyes.narrow")
 
     def look(self, event=None):
+        """Enclosure eyes look event
+            Args:
+                event: empty event unless includes "side" data
+        """
+
         if event and event.data:
             side = event.data.get("side", "")
             self.writer.write("eyes.look=" + side)
 
     def color(self, event=None):
+        """Enclosure eyes color changing event
+           Args:
+               event: empty unless contains color data
+        """
         r, g, b = 255, 255, 255
         if event and event.data:
             r = int(event.data.get("r"), r)
@@ -78,24 +110,45 @@ class EnclosureEyes:
         self.writer.write("eyes.color=" + str(color))
 
     def brightness(self, event=None):
+        """Enclosure eyes brightness event
+            Args:
+                event: empty event unless contains brightness level
+        """
+
         level = 30
         if event and event.data:
             level = event.data.get("level", level)
         self.writer.write("eyes.level=" + str(level))
 
     def volume(self, event=None):
+        """Enclosure eyes narrow event
+            Args:
+                event: empty event unless contains volume level
+        """
         volume = 4
         if event and event.data:
             volume = event.data.get("volume", volume)
         self.writer.write("eyes.volume=" + str(volume))
 
     def reset(self, event=None):
+        """Enclosure eyes reset event
+            Args:
+                event: empty event
+        """
         self.writer.write("eyes.reset")
 
     def spin(self, event=None):
+        """Enclosure eyes spin event
+            Args:
+                event: empty event
+        """
         self.writer.write("eyes.spin")
 
     def timed_spin(self, event=None):
+        """Enclosure eyes timed spin event
+            Args:
+                event: empty event unless contains spin duration
+        """
         length = 5000
         if event and event.data:
             length = event.data.get("length", length)

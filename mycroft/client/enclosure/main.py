@@ -22,11 +22,13 @@ from mycroft.client.enclosure import Enclosure
 
 
 def main():
+    """Enclosure client main loop
+    """
     enclosure = Enclosure()
     try:
         enclosure.run()
     except Exception as e:
-        print(e)
+        print e
     finally:
         sys.exit()
 

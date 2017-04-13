@@ -31,11 +31,18 @@ class EnclosureMouth:
     """
 
     def __init__(self, ws, writer):
+        """Enclosure mouth init
+            Args:
+                ws (obj): websocket client
+                writer (obj): serial port client
+        """
         self.ws = ws
         self.writer = writer
         self.__init_events()
 
     def __init_events(self):
+        """EnclosureMouth init events
+        """
         self.ws.on('enclosure.mouth.reset', self.reset)
         self.ws.on('enclosure.mouth.talk', self.talk)
         self.ws.on('enclosure.mouth.think', self.think)
@@ -45,27 +52,55 @@ class EnclosureMouth:
         self.ws.on('enclosure.mouth.text', self.text)
 
     def reset(self, event=None):
+        """EnclosureMouth reset
+            Args:
+                event: empty event
+        """
         self.writer.write("mouth.reset")
 
     def talk(self, event=None):
+        """EnclosureMouth talk
+            Args:
+                event: empty event
+        """
         self.writer.write("mouth.talk")
 
     def think(self, event=None):
+        """EnclosureMouth think animation
+            Args:
+                event: empty event
+        """
         self.writer.write("mouth.think")
 
     def listen(self, event=None):
+        """EnclosureMouth listen animation
+            Args:
+                event: empty event
+        """
         self.writer.write("mouth.listen")
 
     def smile(self, event=None):
+        """EnclosureMouth smile animation
+            Args:
+                event: empty event
+        """
         self.writer.write("mouth.smile")
 
     def viseme(self, event=None):
+        """EnclosureMouth viseme display
+            Args:
+                event: empty event unless viseme code
+        """
         if event and event.data:
             code = event.data.get("code")
             if code:
                 self.writer.write("mouth.viseme=" + code)
 
     def text(self, event=None):
+        """EnclosureMouth test
+            Args:
+                event: empty event unless passes text to display
+        """
         text = ""
         if event and event.data:
             text = event.data.get("text", text)

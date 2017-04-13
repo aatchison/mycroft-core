@@ -31,14 +31,25 @@ class EnclosureWeather:
     """
 
     def __init__(self, ws, writer):
+        """EnclosureWeather init
+            Args:
+                ws (obj):websocket client
+                writer (obj): serial client
+        """
         self.ws = ws
         self.writer = writer
         self.__init_events()
 
     def __init_events(self):
+        """EnclosureWeather init events
+        """
         self.ws.on('enclosure.weather.display', self.display)
 
     def display(self, event=None):
+        """EnclosureWeather display
+            Args:
+                event: empty unless weather img code
+        """
         if event and event.data:
             img_code = event.data.get("img_code", None)
             temp = event.data.get("temp", None)
