@@ -39,7 +39,15 @@ __author__ = 'seanfitz'
 
 
 class MutableStream(object):
+    """Mutable stream
+    """
     def __init__(self, wrapped_stream, format, muted=False):
+        """Mutable Stream init
+            Args:
+                wrapped_stream: ?
+                format: ?
+                muted: ?
+        """
         assert wrapped_stream is not None
         self.wrapped_stream = wrapped_stream
         self.muted = muted
@@ -47,12 +55,20 @@ class MutableStream(object):
         self.muted_buffer = b''.join([b'\x00' * self.SAMPLE_WIDTH])
 
     def mute(self):
+        """mute ?
+        """
         self.muted = True
 
     def unmute(self):
+        """unmute
+        """
         self.muted = False
 
     def read(self, size):
+        """read what?
+            Args:
+                size: ?
+        """
         frames = collections.deque()
         remaining = size
         while remaining > 0:
@@ -73,24 +89,40 @@ class MutableStream(object):
         return audio
 
     def close(self):
+        """close what?
+        """
         self.wrapped_stream.close()
         self.wrapped_stream = None
 
     def is_stopped(self):
+        """What is this?
+        """
         return self.wrapped_stream.is_stopped()
 
     def stop_stream(self):
+        """stop what?
+        """
         return self.wrapped_stream.stop_stream()
 
 
 class MutableMicrophone(Microphone):
+    """Mutable Microphone
+    """
     def __init__(self, device_index=None, sample_rate=16000, chunk_size=1024):
+        """Mutable Microphone
+            Args:
+                device_index: ?
+                sample_rate: ?
+                chunk_size: ?
+        """
         Microphone.__init__(
             self, device_index=device_index, sample_rate=sample_rate,
             chunk_size=chunk_size)
         self.muted = False
 
     def __enter__(self):
+        """wht is this ?
+        """
         assert self.stream is None, \
             "This audio source is already inside a context manager"
         self.audio = pyaudio.PyAudio()
@@ -103,6 +135,12 @@ class MutableMicrophone(Microphone):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """What is this?
+            Args:
+                exc_type: ?
+                exc_value: ?
+                traceback: ?
+        """
         if not self.stream.is_stopped():
             self.stream.stop_stream()
         self.stream.close()
@@ -110,17 +148,23 @@ class MutableMicrophone(Microphone):
         self.audio.terminate()
 
     def mute(self):
+        """what is this?
+        """
         self.muted = True
         if self.stream:
             self.stream.mute()
 
     def unmute(self):
+        """what is this?
+        """
         self.muted = False
         if self.stream:
             self.stream.unmute()
 
 
 class ResponsiveRecognizer(speech_recognition.Recognizer):
+    """Responsive Recognizer
+    """
     # The maximum audio in seconds to keep for transcribing a phrase
     # The wake word must fit in this time
     SAVED_WW_SEC = 1.0
@@ -144,6 +188,10 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
     SEC_BETWEEN_WW_CHECKS = 0.2
 
     def __init__(self, wake_word_recognizer):
+        """Responsive Recognizer
+            Args:
+                wake_word_recognizer: ?
+        """
         speech_recognition.Recognizer.__init__(self)
         self.wake_word_recognizer = wake_word_recognizer
         self.audio = pyaudio.PyAudio()
@@ -153,25 +201,38 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
 
     @staticmethod
     def record_sound_chunk(source):
+        """Record sound chunk
+            Args:
+                source: ?
+        """
         return source.stream.read(source.CHUNK)
 
     @staticmethod
     def calc_energy(sound_chunk, sample_width):
+        """Calculate energy
+            Args:
+                sound_chunk: ?
+                sample_width: ?
+        """
         return audioop.rms(sound_chunk, sample_width)
 
     def wake_word_in_audio(self, frame_data):
+        """Wake word in audio
+            Args:
+                frame_data: ?
+        """
         hyp = self.wake_word_recognizer.transcribe(frame_data)
         return self.wake_word_recognizer.found_wake_word(hyp)
 
     def record_phrase(self, source, sec_per_buffer):
-        """
-        This attempts to record an entire spoken phrase. Essentially,
-        this waits for a period of silence and then returns the audio
-
-        :rtype: bytearray
-        :param source: AudioSource
-        :param sec_per_buffer: Based on source.SAMPLE_RATE
-        :return: bytearray representing the frame_data of the recorded phrase
+        """Record Phrase
+            This attempts to record an entire spoken phrase. Essentially,
+            this waits for a period of silence and then returns the audio
+             Args:
+                 source: AudioSource
+                 sec_per_buffer: Based on source.SAMPLE_RATE
+             Returns:
+                 byte_data (bytearray): bytearray representing the frame_data of the recorded phrase
         """
         num_loud_chunks = 0
         noise = 0
@@ -180,11 +241,21 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
         min_noise = 0
 
         def increase_noise(level):
+            """Increase noise level
+                Args:
+                    level: ?
+            """
             if level < max_noise:
                 return level + 200 * sec_per_buffer
             return level
 
         def decrease_noise(level):
+            """Decrease Noise
+                Args:
+                    level: ?
+                Returns:
+                    level: ?
+            """
             if level > min_noise:
                 return level - 100 * sec_per_buffer
             return level
@@ -237,9 +308,19 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
 
     @staticmethod
     def sec_to_bytes(sec, source):
+        """sec to bytes?
+            Args:
+                sec: ?
+                source: ?
+        """
         return sec * source.SAMPLE_RATE * source.SAMPLE_WIDTH
 
     def wait_until_wake_word(self, source, sec_per_buffer):
+        """wait until wake word ?
+            Args:
+                source: ?
+                sec_per_buffer: ?
+        """
         num_silent_bytes = int(self.SILENCE_SEC * source.SAMPLE_RATE *
                                source.SAMPLE_WIDTH)
 
@@ -291,19 +372,24 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
 
     @staticmethod
     def create_audio_data(raw_data, source):
-        """
-        Constructs an AudioData instance with the same parameters
-        as the source and the specified frame_data
+        """Create audio data
+            Constructs an AudioData instance with the same parameters
+            as the source and the specified frame_data
+            Args:
+                raw_data:?
+                source: ?
         """
         return AudioData(raw_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
 
     def listen(self, source, emitter):
-        """
-        Listens for audio that Mycroft should respond to
-
-        :param source: an ``AudioSource`` instance for reading from
-        :param emitter: a pyee EventEmitter for sending when the wakeword
+        """Listen
+            Listens for audio that Mycroft should respond to
+            Args:
+                source: an ``AudioSource`` instance for reading from
+                emitter: a pyee EventEmitter for sending when the wakeword
                         has been found
+            Returns:
+                audio_data: ?
         """
         assert isinstance(source, AudioSource), "Source must be an AudioSource"
 
@@ -323,6 +409,11 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
         return audio_data
 
     def adjust_threshold(self, energy, seconds_per_buffer):
+        """Adjust threshhold ?
+            Args:
+                energy: ?
+                seconds_per_buffer: ?
+        """
         if self.dynamic_energy_threshold and energy > 0:
             # account for different chunk sizes and rates
             damping = (

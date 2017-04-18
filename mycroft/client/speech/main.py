@@ -41,35 +41,50 @@ config = ConfigurationManager.get()
 
 
 def handle_record_begin():
+    """Begin recording audio for STT
+        Notes:
+            If "confirm_listening" is enabled, play a wave file with a short sound to audibly
+            indicate recording has begun
+    """
     logger.info("Begin Recording...")
-
-    # If enabled, play a wave file with a short sound to audibly
-    # indicate recording has begun.
     if config.get('confirm_listening'):
-        file = resolve_resource_file(
+        res_file = resolve_resource_file(
             config.get('sounds').get('start_listening'))
         if file:
-            play_wav(file)
-
+            play_wav(res_file)
     ws.emit(Message('recognizer_loop:record_begin'))
 
 
 def handle_record_end():
+    """End recording for STT
+    """
     logger.info("End Recording...")
     ws.emit(Message('recognizer_loop:record_end'))
 
 
 def handle_wakeword(event):
+    """Wakeword detected event
+        Args:
+           event: ?
+    """
     logger.info("Wakeword Detected: " + event['utterance'])
     ws.emit(Message('recognizer_loop:wakeword', event))
 
 
 def handle_utterance(event):
+    """Handle utterance event
+        Args:
+            event: ?
+    """
     logger.info("Utterance: " + str(event['utterances']))
     ws.emit(Message('recognizer_loop:utterance', event))
 
 
 def mute_and_speak(utterance):
+    """Mute microphone so as not to pick up speech from self and then speak
+        Args:
+            utterance (str): text to be spoken
+    """
     lock.acquire()
     ws.emit(Message("recognizer_loop:audio_output_start"))
     try:
@@ -83,26 +98,35 @@ def mute_and_speak(utterance):
 
 
 def handle_multi_utterance_intent_failure(event):
+    """Multiple intent failure handler
+        Args:
+            event: ?
+        Todo:
+            localization
+    """
     logger.info("Failed to find intent on multiple intents.")
-    # TODO: Localize
     mute_and_speak("Sorry, I didn't catch that. Please rephrase your request.")
 
 
 def handle_speak(event):
+    """Handle speech with local TTS engine
+        Args:
+            event: ?
+        Notes:
+           This is a bit of a hack for Picroft.  The analog audio on a Pi blocks
+           for 30 seconds fairly often, so we don't want to break on periods
+           (decreasing the chance of encountering the block).  But we will
+           keep the split for non-Picroft installs since it give user feedback
+           faster on longer phrases.
+        Todo:
+           Remove or make an option?  This is really a hack, anyway,
+           so we likely will want to get rid of this when not running on Mimic
+    """
     utterance = event.data['utterance']
     expect_response = event.data.get('expect_response', False)
 
-    # This is a bit of a hack for Picroft.  The analog audio on a Pi blocks
-    # for 30 seconds fairly often, so we don't want to break on periods
-    # (decreasing the chance of encountering the block).  But we will
-    # keep the split for non-Picroft installs since it give user feedback
-    # faster on longer phrases.
-    #
-    # TODO: Remove or make an option?  This is really a hack, anyway,
-    # so we likely will want to get rid of this when not running on Mimic
     if not config.get('enclosure', {}).get('platform') == "picroft":
-        chunks = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s',
-                          utterance)
+        chunks = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', utterance)
         for chunk in chunks:
             try:
                 mute_and_speak(chunk)
@@ -116,32 +140,54 @@ def handle_speak(event):
 
 
 def handle_sleep(event):
+    """Handle Sleep
+        Args:
+            event: ?
+    """
     loop.sleep()
 
 
 def handle_wake_up(event):
+    """Handle wake up
+        event: ?
+    """
     loop.awaken()
 
 
 def handle_stop(event):
+    """Handle Stop
+        Args:
+            event: ?
+    """
     kill([config.get('tts').get('module')])
     kill(["aplay"])
 
 
 def handle_paired(event):
+    """Handle Paired
+        Args:
+            event: ?
+    """
     IdentityManager.update(event.data)
 
 
 def handle_open():
-    # Reset the UI to indicate ready for speech processing
+    """Handle Open
+        Notes:
+            Reset the UI to indicate ready for speech processing
+    """
     EnclosureAPI(ws).reset()
 
 
 def connect():
+    """Connect to web socket
+    """
     ws.run_forever()
 
 
 def main():
+    """Main Loop
+    """
     global ws
     global loop
     lock = PIDLock("voice")

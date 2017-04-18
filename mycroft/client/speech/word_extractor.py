@@ -22,10 +22,18 @@ __author__ = 'jdorleans'
 
 
 class WordExtractor:
+    """Word Extractor
+    """
     SILENCE_SECS = 0.1
     PRECISION_RATE = 0.01
 
     def __init__(self, audio, recognizer, metrics):
+        """Word extractor emit
+            Args:
+                audio: ?
+                recognizer: ?
+                metrics: ?
+        """
         self.audio = audio
         self.recognizer = recognizer
         self.audio_size = len(self.audio.frame_data)
@@ -39,12 +47,21 @@ class WordExtractor:
         self.metrics = metrics
 
     def __add(self, is_begin, value):
+        """add what?
+            Args:
+                is_begin: ?
+                value: ?
+        """
         if is_begin:
             self.begin += value
         else:
             self.end += value
 
     def __calculate_marker(self, is_begin):
+        """calculate marker
+            Args:
+                is_begin: ?
+        """
         dt = self.delta
         sign = 1 if is_begin else -1
 
@@ -57,19 +74,31 @@ class WordExtractor:
             dt = int(dt / 2)
 
     def calculate_range(self):
+        """calculate range?
+        """
         self.__calculate_marker(False)
         self.__calculate_marker(True)
 
     @staticmethod
     def create_silence(seconds, sample_rate, sample_width):
+        """create silence?
+            Args:
+                seconds: ?
+                sample_rate: ?
+                sample_width: ?
+        """
         return '\0' * int(seconds * sample_rate * sample_width)
 
     def get_audio_data_before(self):
+        """get audio data before?
+        """
         byte_data = self.audio.frame_data[0:self.begin] + self.silence_data
         return AudioData(byte_data, self.audio.sample_rate,
                          self.audio.sample_width)
 
     def get_audio_data_after(self):
+        """get audio data after
+        """
         byte_data = self.silence_data + self.audio.frame_data[self.end:
                                                               self.audio_size]
         return AudioData(byte_data, self.audio.sample_rate,
